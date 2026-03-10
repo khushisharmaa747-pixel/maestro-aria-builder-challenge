@@ -1,0 +1,23 @@
+name: Weekly Brief Refresh
+
+on:
+  schedule:
+    # Every Monday at 07:00 UTC
+    - cron: "0 7 * * 1"
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+jobs:
+  refresh-brief:
+    name: Regenerate AI Weekly Brief
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger brief regeneration
+        run: |
+          curl -X POST "${{ secrets.VERCEL_APP_URL }}/api/brief" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail \
+            --silent \
+            --show-error
+          echo "✅ Brief regenerated successfully"

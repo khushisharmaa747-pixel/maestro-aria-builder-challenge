@@ -1,0 +1,15 @@
+# Environment - never commit these
+.env
+.env.local
+.env*.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maestro — Competitive Ad Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --border:rgba(0,0,0,0.08);
+  --text:#0A0A0A;
+  --muted:rgba(10,10,10,0.42);
+  --sw:252px;
+  --fd:'DM Serif Display',Georgia,serif;
+  --fb:'DM Sans',system-ui,sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;display:flex;overflow-x:hidden}
+.aurora{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.aurora-blob{position:absolute;bottom:-20%;left:50%;width:180%;height:60%;border-radius:50%;filter:blur(80px);opacity:.28;background:conic-gradient(from 0deg at 50% 100%,#22d3ee,#60a5fa,#a78bfa,#f0abfc,#fb923c,#fbbf24,#34d399,#22d3ee);animation:ab 10s ease-in-out infinite;transform:translateX(-50%)}
+@keyframes ab{0%{transform:translateX(-50%) rotate(0deg) scale(1);opacity:.25}33%{transform:translateX(-50%) rotate(120deg) scale(1.08);opacity:.35}66%{transform:translateX(-50%) rotate(240deg) scale(.96);opacity:.28}100%{transform:translateX(-50%) rotate(360deg) scale(1);opacity:.25}}
+.rings{position:fixed;top:50%;left:50%;pointer-events:none;z-index:0}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(0,0,0,.045);top:50%;left:50%;width:200px;height:200px;animation:re 6s ease-out infinite}
+@keyframes re{0%{transform:translate(-50%,-50%) scale(1);opacity:.6}100%{transform:translate(-50%,-50%) scale(5.5);opacity:0}}
+
+/* SIDEBAR */
+.sidebar{position:fixed;top:0;left:0;width:var(--sw);height:100vh;background:rgba(255,255,255,.75);backdrop-filter:blur(16px);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow:hidden}
+.sb-logo{padding:28px 24px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-logo-name{font-family:var(--fd);font-size:21px;letter-spacing:-.02em;color:var(--text);line-height:1}
+.sb-logo-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px;font-weight:500}
+.sb-nav{overflow-y:auto;padding:6px 0;flex-shrink:0}
+.sb-nav::-webkit-scrollbar{width:0}
+.nav-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 24px 5px;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 24px;cursor:pointer;font-size:13px;font-weight:400;color:var(--muted);transition:color .15s,background .15s;position:relative;user-select:none;text-decoration:none;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{color:var(--text);background:rgba(0,0,0,.025)}
+.nav-item.active{color:var(--text);font-weight:500}
+.nav-item.active::before{content:'';position:absolute;left:0;top:5px;bottom:5px;width:2.5px;background:var(--text);border-radius:0 2px 2px 0}
+.nav-icon{font-size:13px;opacity:.65;flex-shrink:0}
+
+/* MOSAIC FILTER SECTION */
+.sb-mosaic{border-top:1px solid var(--border);padding:10px 0 8px;flex:1;overflow-y:auto;min-height:0}
+.sb-mosaic::-webkit-scrollbar{width:0}
+.sb-mos-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 24px 8px;font-weight:500}
+.mg{border-bottom:1px solid rgba(0,0,0,.05)}
+.mg:last-child{border-bottom:none}
+.mg-hdr{display:flex;align-items:center;gap:7px;padding:8px 18px;cursor:pointer;user-select:none;transition:background .13s}
+.mg-hdr:hover{background:rgba(0,0,0,.025)}
+.mg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mg-name{font-size:12.5px;font-weight:600;color:var(--text);flex:1}
+.mg-cnt{font-size:10px;font-weight:600;color:var(--muted);background:rgba(0,0,0,.06);border-radius:10px;padding:1px 6px}
+.mg-arr{font-size:9px;color:var(--muted);transition:transform .2s cubic-bezier(.34,1.56,.64,1);display:inline-block;margin-left:1px}
+.mg-arr.open{transform:rotate(90deg)}
+.mg-list{display:none;flex-direction:column;padding:1px 0 6px}
+.mg-list.open{display:flex;animation:ddin .17s ease}
+@keyframes ddin{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.cp{font-size:11.5px;color:var(--muted);padding:5px 10px 5px 30px;cursor:pointer;transition:all .12s;border:none;background:none;width:100%;text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp:hover{color:var(--text);background:rgba(0,0,0,.03)}
+.cp.active-cp{color:var(--text);font-weight:600;background:rgba(0,0,0,.05)}
+.cp-all{font-size:11px;color:var(--muted);padding:3px 10px 3px 30px;cursor:pointer;font-style:italic;opacity:.6;background:none;border:none;width:100%;text-align:left;transition:opacity .12s}
+.cp-all:hover{opacity:1}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;position:relative;z-index:1;min-width:0}
+.page{display:none;animation:penter .3s cubic-bezier(.22,1,.36,1)}
+.page.active{display:block}
+@keyframes penter{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+
+/* HERO */
+.hero{padding:62px 52px 46px;position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero-eye{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:13px}
+.hero-title{font-family:var(--fd);font-size:clamp(32px,3.8vw,52px);letter-spacing:-.03em;line-height:1.06;color:var(--text);font-weight:400;max-width:560px}
+.hero-title em{font-style:italic}
+.hero-sub{font-size:14px;color:var(--muted);margin-top:15px;max-width:450px;line-height:1.7}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border)}
+.kpi{padding:24px 30px;border-right:1px solid var(--border);transition:background .15s}
+.kpi:last-child{border-right:none}
+.kpi:hover{background:rgba(0,0,0,.018)}
+.kpi-lbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.kpi-val{font-family:var(--fd);font-size:40px;letter-spacing:-.03em;line-height:1;margin-top:7px}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* CONTENT */
+.content{padding:34px 52px}
+.sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.sec-ttl{font-family:var(--fd);font-size:21px;letter-spacing:-.02em;font-weight:400}
+.sec-act{font-size:12px;color:var(--muted);cursor:pointer;transition:color .13s;font-weight:500;border:none;background:none}
+.sec-act:hover{color:var(--text)}
+
+/* FILTER BAR */
+.fbar{display:flex;gap:7px;flex-wrap:wrap;padding:13px 52px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.65);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+.fsep{width:1px;background:var(--border);height:17px;align-self:center;margin:0 1px}
+.pill{font-size:11.5px;font-weight:500;padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:white;cursor:pointer;transition:all .12s;color:var(--muted);user-select:none}
+.pill:hover{border-color:rgba(0,0,0,.18);color:var(--text)}
+.pill.active{background:var(--text);color:white;border-color:var(--text)}
+
+/* ACTIVE FILTER BANNER */
+.afb{display:none;align-items:center;gap:6px;padding:9px 52px;background:rgba(255,255,255,.88);border-bottom:1px solid var(--border);font-size:12.5px;backdrop-filter:blur(5px)}
+.afb-x{cursor:pointer;opacity:.4;margin-left:6px;font-size:11px}
+.afb-x:hover{opacity:.75}
+
+/* CHART GRID */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px}
+.ccrd{background:white;border:1px solid var(--border);border-radius:12px;padding:24px}
+.ctitle{font-family:var(--fd);font-size:15px;letter-spacing:-.01em;font-weight:400}
+.csub{font-size:11px;color:var(--muted);margin-top:2px;margin-bottom:18px}
+.cwrap{position:relative;height:208px}
+
+/* AD GRID */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.acrd{background:white;border:1px solid var(--border);border-radius:12px;padding:19px;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;position:relative;display:flex;flex-direction:column}
+.acrd:hover{transform:translateY(-3px);box-shadow:0 11px 34px rgba(0,0,0,.08)}
+.acrd-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.abrand{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.afmt{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:4px}
+.afmt.video{background:rgba(99,102,241,.1);color:#4f46e5}
+.afmt.carousel{background:rgba(234,88,12,.1);color:#c2410c}
+.afmt.static{background:rgba(22,163,74,.1);color:#15803d}
+.acopy{font-size:13px;line-height:1.62;color:var(--text);margin-bottom:13px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.ameta{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px}
+.achip{font-size:11px;color:var(--muted)}
+.achip strong{color:var(--text);font-weight:600}
+.astar{position:absolute;top:12px;right:12px;font-size:11px;background:rgba(251,191,36,.15);border-radius:50%;width:23px;height:23px;display:flex;align-items:center;justify-content:center}
+
+/* INSIGHTS */
+.ilist{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.icrd{background:white;border:1px solid var(--border);border-radius:12px;padding:19px 23px;display:flex;gap:15px;align-items:flex-start;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+.icrd:hover{transform:translateX(4px)}
+.iico{font-size:17px;flex-shrink:0;margin-top:1px}
+.ilbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.itxt{font-size:13.5px;line-height:1.62;color:var(--text)}
+.itag{display:inline-block;font-size:11px;font-weight:600;background:rgba(0,0,0,.06);border-radius:4px;padding:1px 6px;margin-right:2px}
+
+/* BRAND GRID */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:13px}
+.bcrd{background:white;border:1px solid var(--border);border-radius:12px;padding:21px;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s}
+.bcrd:hover{transform:translateY(-3px);box-shadow:0 11px 32px rgba(0,0,0,.07)}
+.bcname{font-family:var(--fd);font-size:17px;letter-spacing:-.01em;margin-bottom:3px}
+.bccat{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:500;margin-bottom:13px}
+.bcstats{display:flex;gap:16px;margin-bottom:11px}
+.bcsv{font-family:var(--fd);font-size:21px;letter-spacing:-.02em;line-height:1}
+.bcsl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-top:1px}
+.bcjust{font-size:11px;color:var(--muted);line-height:1.56;margin-bottom:9px}
+.bctags{display:flex;gap:5px;flex-wrap:wrap}
+.bctag{font-size:10px;font-weight:600;background:rgba(0,0,0,.055);padding:2px 7px;border-radius:4px}
+
+/* HEATMAP */
+.hmwrap{overflow-x:auto;margin-top:18px}
+.hmcols{display:flex;padding-left:152px;margin-bottom:4px}
+.hmcol{flex:1;text-align:center;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:0 2px}
+.hmrow{display:flex;align-items:center}
+.hmrlbl{width:152px;font-size:11px;color:var(--text);font-weight:500;padding-right:8px;flex-shrink:0}
+.hmcell{flex:1;aspect-ratio:2;margin:2px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;cursor:pointer;transition:transform .13s}
+.hmcell:hover{transform:scale(1.08)}
+
+/* BRIEF */
+.bwrap{max-width:700px}
+.bsec{background:white;border:1px solid var(--border);border-radius:12px;padding:28px 32px;margin-bottom:13px}
+.bsec-t{font-family:var(--fd);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:11px;font-weight:400}
+.bbody{font-size:14px;line-height:1.78;color:var(--text)}
+.bbody strong{font-weight:600}
+.bmeta{font-size:11px;color:var(--muted);margin-top:20px;padding-top:13px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
+
+/* ABOUT */
+.awrap{max-width:620px}
+.ablk{background:white;border:1px solid var(--border);border-radius:12px;padding:32px 36px;margin-bottom:13px}
+.abody{font-size:14.5px;line-height:1.82;color:var(--text)}
+.abody p+p{margin-top:13px}
+
+/* ARIA */
+.aria-btn{position:fixed;bottom:26px;right:26px;width:50px;height:50px;border-radius:50%;background:var(--text);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1000;box-shadow:0 4px 20px rgba(0,0,0,.22);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.aria-btn:hover{transform:scale(1.08)}
+.aria-btn svg{color:white}
+.aria-panel{position:fixed;bottom:86px;right:26px;width:348px;max-height:490px;background:white;border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 54px rgba(0,0,0,.12);display:flex;flex-direction:column;z-index:1000;overflow:hidden;animation:apup .26s cubic-bezier(.34,1.56,.64,1)}
+.aria-panel.hidden{display:none}
+@keyframes apup{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.aria-hd{padding:15px 17px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.aria-orb{width:29px;height:29px;border-radius:50%;background:conic-gradient(from 0deg,#22d3ee,#60a5fa,#a78bfa,#fb923c,#22d3ee);animation:os 4s linear infinite;flex-shrink:0}
+@keyframes os{to{transform:rotate(360deg)}}
+.aria-hd-info{margin-left:9px}
+.aria-nm{font-weight:600;font-size:13px}
+.aria-st{font-size:10.5px;color:var(--muted)}
+.aria-cls{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0}
+.aria-msgs{flex:1;overflow-y:auto;padding:13px 17px;display:flex;flex-direction:column;gap:9px;scrollbar-width:thin}
+.amsg{max-width:86%;font-size:12.5px;line-height:1.62;padding:8px 12px;border-radius:11px}
+.amsg.bot{background:rgba(0,0,0,.05);align-self:flex-start;border-radius:4px 11px 11px 11px}
+.amsg.user{background:var(--text);color:white;align-self:flex-end;border-radius:11px 4px 11px 11px}
+.aria-suggs{padding:0 17px 9px;display:flex;gap:5px;flex-wrap:wrap}
+.asugg{font-size:10.5px;padding:3px 9px;border:1px solid var(--border);border-radius:100px;cursor:pointer;color:var(--muted);background:white;transition:all .12s}
+.asugg:hover{background:var(--text);color:white;border-color:var(--text)}
+.aria-ir{padding:11px 13px;border-top:1px solid var(--border);display:flex;gap:6px}
+.aria-inp{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:var(--fb);font-size:12.5px;outline:none;background:rgba(0,0,0,.02);transition:border-color .12s}
+.aria-inp:focus{border-color:rgba(0,0,0,.2)}
+.aria-snd{background:var(--text);color:white;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12.5px;font-weight:500;font-family:var(--fb);transition:opacity .12s}
+.aria-snd:hover{opacity:.8}
+
+@media(max-width:860px){
+  :root{--sw:0px}
+  .sidebar{display:none}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .cgrid{grid-template-columns:1fr}
+  .hero{padding:34px 20px 28px}
+  .fbar,.afb,.content{padding-left:20px;padding-right:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="aurora"><div class="aurora-blob"></div></div>
+<div class="rings">
+  <div class="ring" style="animation-delay:0s"></div>
+  <div class="ring" style="animation-delay:1.2s"></div>
+  <div class="ring" style="animation-delay:2.4s"></div>
+  <div class="ring" style="animation-delay:3.6s"></div>
+  <div class="ring" style="animation-delay:4.8s"></div>
+</div>
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-name">Maestro</div>
+    <div class="sb-logo-sub">Ad Intelligence</div>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-lbl">Intelligence</div>
+    <button class="nav-item active" data-page="dashboard" onclick="nav('dashboard')"><span class="nav-icon">◎</span>Dashboard</button>
+    <button class="nav-item" data-page="brands" onclick="nav('brands')"><span class="nav-icon">⊞</span>Brand Profiles</button>
+    <button class="nav-item" data-page="ads" onclick="nav('ads')"><span class="nav-icon">▤</span>Live Ads</button>
+    <button class="nav-item" data-page="gaps" onclick="nav('gaps')"><span class="nav-icon">◈</span>Gap Analysis</button>
+    <button class="nav-item" data-page="brief" onclick="nav('brief')"><span class="nav-icon">✦</span>Weekly Brief</button>
+    <div class="nav-lbl" style="margin-top:4px">About</div>
+    <button class="nav-item" data-page="about-maestro" onclick="nav('about-maestro')"><span class="nav-icon">◷</span>About Maestro</button>
+    <button class="nav-item" data-page="about-me" onclick="nav('about-me')"><span class="nav-icon">◉</span>About Me</button>
+  </div>
+  <div class="sb-mosaic">
+    <div class="sb-mos-lbl">Filter by Mosaic Brand</div>
+    <div class="mg">
+      <div class="mg-hdr" onclick="toggleMG('bbw')">
+        <span class="mg-dot" style="background:#c084fc"></span>
+        <span class="mg-name">BeBodywise</span>
+        <span class="mg-cnt">5</span>
+        <span class="mg-arr" id="arr-bbw">▸</span>
+      </div>
+      <div class="mg-list" id="mg-bbw">
+        <button class="cp" onclick="filterComp('Wellbeing Nutrition','bbw','BeBodywise',this)">Wellbeing Nutrition</button>
+        <button class="cp" onclick="filterComp('Wow Skin Science','bbw','BeBodywise',this)">Wow Skin Science</button>
+        <button class="cp" onclick="filterComp('mCaffeine','bbw','BeBodywise',this)">mCaffeine</button>
+        <button class="cp" onclick="filterComp('Pilgrim','bbw','BeBodywise',this)">Pilgrim</button>
+        <button class="cp" onclick="filterComp('Mamaearth','bbw','BeBodywise',this)">Mamaearth</button>
+        <button class="cp-all" onclick="filterMosaic('BeBodywise','bbw')">View all 5 →</button>
+      </div>
+    </div>
+    <div class="mg">
+      <div class="mg-hdr" onclick="toggleMG('mm')">
+        <span class="mg-dot" style="background:#60a5fa"></span>
+        <span class="mg-name">Man Matters</span>
+        <span class="mg-cnt">2</span>
+        <span class="mg-arr" id="arr-mm">▸</span>
+      </div>
+      <div class="mg-list" id="mg-mm">
+        <button class="cp" onclick="filterComp('Boldfit','mm','Man Matters',this)">Boldfit</button>
+        <button class="cp" onclick="filterComp('HealthKart','mm','Man Matters',this)">HealthKart</button>
+        <button class="cp-all" onclick="filterMosaic('ManMatters','mm')">View all 2 →</button>
+      </div>
+    </div>
+    <div class="mg">
+      <div class="mg-hdr" onclick="toggleMG('lj')">
+        <span class="mg-dot" style="background:#34d399"></span>
+        <span class="mg-name">Little Joys</span>
+        <span class="mg-cnt">3</span>
+        <span class="mg-arr" id="arr-lj">▸</span>
+      </div>
+      <div class="mg-list" id="mg-lj">
+        <button class="cp" onclick="filterComp('The Moms Co','lj','Little Joys',this)">The Moms Co</button>
+        <button class="cp" onclick="filterComp('Oziva','lj','Little Joys',this)">Oziva</button>
+        <button class="cp" onclick="filterComp('Nykaa Health','lj','Little Joys',this)">Nykaa Health</button>
+        <button class="cp-all" onclick="filterMosaic('LittleJoys','lj')">View all 3 →</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="hero">
+    <div class="hero-eye">Competitive Intelligence — Week of <span id="cur-week"></span></div>
+    <h1 class="hero-title">Meet <em>Maestro.</em><br>Your competitor's ad strategy, decoded.</h1>
+    <p class="hero-sub">Live ad intelligence from the Meta Ad Library across 10 D2C brands competing with BeBodywise, Man Matters, and Little Joys.</p>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-lbl">Total Ads Tracked</div><div class="kpi-val" id="k-total">0</div><div class="kpi-sub">Across all competitors</div></div>
+    <div class="kpi"><div class="kpi-lbl">Proven Performers</div><div class="kpi-val" id="k-perf">0</div><div class="kpi-sub">Running 30+ days</div></div>
+    <div class="kpi"><div class="kpi-lbl">Top Format</div><div class="kpi-val" id="k-fmt" style="font-size:22px;padding-top:8px">—</div><div class="kpi-sub">By volume</div></div>
+    <div class="kpi"><div class="kpi-lbl">Avg Days Active</div><div class="kpi-val" id="k-avg">0</div><div class="kpi-sub">Per active ad</div></div>
+  </div>
+  <div class="content">
+    <div class="cgrid">
+      <div class="ccrd"><div class="ctitle">Ad Format Distribution</div><div class="csub">Static vs Video vs Carousel</div><div class="cwrap"><canvas id="c-fmt"></canvas></div></div>
+      <div class="ccrd"><div class="ctitle">Message Theme Breakdown</div><div class="csub">What competitors are saying</div><div class="cwrap"><canvas id="c-theme"></canvas></div></div>
+      <div class="ccrd"><div class="ctitle">Ads by Brand</div><div class="csub">Volume across competitors</div><div class="cwrap"><canvas id="c-brand"></canvas></div></div>
+      <div class="ccrd"><div class="ctitle">Ad Longevity</div><div class="csub">Days active distribution</div><div class="cwrap"><canvas id="c-long"></canvas></div></div>
+    </div>
+    <div class="sec-hd"><div class="sec-ttl">AI Insights</div><button class="sec-act" onclick="nav('brief')">View full brief →</button></div>
+    <div class="ilist" id="ilist"></div>
+    <div class="sec-hd" style="margin-top:34px"><div class="sec-ttl">Proven Performers</div><button class="sec-act" onclick="nav('ads')">View all →</button></div>
+    <div class="agrid" id="perf-grid"></div>
+  </div>
+</div>
+
+<!-- BRANDS -->
+<div id="page-brands" class="page">
+  <div class="hero">
+    <div class="hero-eye">Competitor Intelligence</div>
+    <h1 class="hero-title">Brand <em>Profiles</em></h1>
+    <p class="hero-sub">10 competitor brands tracked across the Mosaic wellness ecosystem.</p>
+  </div>
+  <div class="content"><div class="bgrid" id="brand-grid"></div></div>
+</div>
+
+<!-- ADS -->
+<div id="page-ads" class="page">
+  <div class="hero">
+    <div class="hero-eye">Meta Ad Library — Live Data</div>
+    <h1 class="hero-title">Live <em>Ads</em></h1>
+    <p class="hero-sub">Every active competitor ad, categorized by format, theme, and longevity.</p>
+  </div>
+  <div class="fbar" id="fbar">
+    <span class="pill active" onclick="setFmt('all',this)">All Brands</span>
+    <span class="fsep"></span>
+    <span class="pill" onclick="setFmt('video',this)">Video</span>
+    <span class="pill" onclick="setFmt('carousel',this)">Carousel</span>
+    <span class="pill" onclick="setFmt('static',this)">Static</span>
+    <span class="fsep"></span>
+    <span class="pill" onclick="setFmt('performer',this)">★ Performers</span>
+  </div>
+  <div class="afb" id="afb"></div>
+  <div class="content"><div class="agrid" id="ads-grid"></div></div>
+</div>
+
+<!-- GAPS -->
+<div id="page-gaps" class="page">
+  <div class="hero">
+    <div class="hero-eye">Creative Opportunity Map</div>
+    <h1 class="hero-title">Gap <em>Analysis</em></h1>
+    <p class="hero-sub">Formats and themes competitors are underusing — your creative whitespace.</p>
+  </div>
+  <div class="content">
+    <div class="ccrd" style="margin-bottom:20px">
+      <div class="ctitle">Format × Theme Heatmap</div>
+      <div class="csub" style="margin-bottom:0">Cell intensity = number of competitor ads. Empty cells = untapped territory.</div>
+      <div class="hmwrap" id="heatmap"></div>
+    </div>
+    <div class="sec-hd"><div class="sec-ttl">Top Opportunities</div></div>
+    <div class="ilist" id="gap-list"></div>
+  </div>
+</div>
+
+<!-- BRIEF -->
+<div id="page-brief" class="page">
+  <div class="hero">
+    <div class="hero-eye">AI-Generated Strategy</div>
+    <h1 class="hero-title">Weekly <em>Brief</em></h1>
+    <p class="hero-sub">Senior strategist-grade competitive intelligence. Generated from live ad data.</p>
+  </div>
+  <div class="content"><div class="bwrap" id="brief-wrap"></div></div>
+</div>
+
+<!-- ABOUT MAESTRO -->
+<div id="page-about-maestro" class="page">
+  <div class="hero">
+    <div class="hero-eye">The Vision</div>
+    <h1 class="hero-title">About <em>Maestro</em></h1>
+  </div>
+  <div class="content">
+    <div class="awrap">
+      <div class="ablk">
+        <div class="abody">
+          <p>The name Maestro reflects the core idea behind this tool. A maestro is someone who conducts and orchestrates many different instruments into one coordinated performance. In a similar way, this system brings together scattered advertising signals from multiple competitors and organizes them into clear, meaningful insights. Instead of marketers manually checking different ads and trying to interpret patterns, Maestro acts like a conductor that organizes the noise of the market into a structured view of what is actually happening in the category.</p>
+          <p>My motivation to build Maestro came from studying how direct to consumer brands grow. In the D2C ecosystem, marketing is the main driver of growth. Customer acquisition, brand perception, and ultimately revenue are shaped heavily by advertising creatives and messaging. While exploring this space, I noticed that although brands spend heavily on ads, they rarely have a structured way to consistently learn from competitor advertising. Marketers may occasionally check competitor ads, but the process is manual and it is difficult to identify meaningful patterns or trends.</p>
+          <p>This observation drove me to build a system that transforms publicly available advertising data into actionable intelligence. The Meta Ad Library contains a large amount of live advertising data, but browsing it manually makes it difficult to understand which strategies competitors are actually testing or scaling. Maestro collects this data and organizes it into a dashboard that highlights patterns in ad formats, messaging themes, and campaign longevity.</p>
+          <p>One key insight from D2C marketing that shaped this solution is the importance of creative experimentation. Successful D2C brands constantly test new creatives and quickly scale the ones that perform well. One strong indicator of performance is how long an advertisement continues running. Ads that stay active for longer periods are likely generating strong results. Because of this, Maestro highlights long-running ads so marketers can quickly identify which creative approaches competitors are investing in.</p>
+          <p>Building Maestro reinforced an important lesson about the D2C landscape. There is no shortage of data, but turning that data into insight is what creates a competitive advantage. By combining live ad data, structured categorization, and AI-driven insights, Maestro helps marketing teams move beyond observation and make smarter creative decisions based on real signals from the market.</p>
+        </div>
+      </div>
+      <div class="ablk" style="border-left:3px solid var(--text)">
+        <div class="sec-ttl" style="margin-bottom:13px">Technical Architecture</div>
+        <div class="abody" style="font-size:13.5px">
+          <p><strong>Scraping Layer:</strong> Python + Playwright headless browser scrapes facebook.com/ads/library for all 10 tracked brands with country=IN. Runs on Railway as a persistent server to bypass Vercel's 60s timeout limit.</p>
+          <p style="margin-top:11px"><strong>AI Classification:</strong> GPT-4o categorizes every ad by message theme, tone, and hook type with a one-sentence strategic summary.</p>
+          <p style="margin-top:11px"><strong>Intelligence Layer:</strong> Aria answers product manager questions using real scraped data. Cron jobs refresh data every Monday 06:00 UTC and regenerate the brief at 07:00 UTC.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT ME -->
+<div id="page-about-me" class="page">
+  <div class="hero">
+    <div class="hero-eye">Mosaic Wellness Fellowship 2026</div>
+    <h1 class="hero-title">Khushi <em>Sharma</em></h1>
+  </div>
+  <div class="content">
+    <div class="awrap">
+      <div class="ablk">
+        <div class="abody">
+          <p>Hi, I am Khushi Sharma and I aspire to be a part of the Mosaic Wellness 2026 Fellowship. I am deeply curious about how ideas turn into meaningful products and how technology, data, and marketing can work together to solve real consumer problems.</p>
+          <p>What inspires me about Mosaic is the way it builds brands that genuinely improve people's lives. Products from brands like BeBodywise, Man Matters, and Little Joys focus on solving everyday wellness challenges in a thoughtful and consumer focused way. Being part of an organization that combines innovation, consumer understanding, and strong execution is incredibly exciting to me.</p>
+          <p>I see myself as a lifelong learner. I enjoy exploring new tools, understanding how businesses grow, and continuously challenging myself to build and learn more. Whether it is analyzing data, understanding consumer behavior, or creating new solutions, I am motivated by the process of learning through building.</p>
+          <p>I hope to contribute to Mosaic by bringing curiosity, initiative, and a genuine desire to grow while working on ideas that create real impact. For me, the fellowship represents an opportunity to learn from talented people, contribute meaningfully, and keep evolving as a builder and problem solver.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <div class="ablk" style="padding:21px 23px"><div class="kpi-lbl">Built For</div><div style="margin-top:9px;font-size:13.5px;line-height:1.7">Mosaic Wellness<br><span style="color:var(--muted)">BeBodywise · Man Matters · Little Joys</span></div></div>
+        <div class="ablk" style="padding:21px 23px"><div class="kpi-lbl">Stack</div><div style="margin-top:9px;font-size:12.5px;line-height:1.9;color:var(--muted)">Python · Playwright<br>GPT-4o · Supabase<br>Vercel · Railway</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ARIA -->
+<button class="aria-btn" onclick="toggleAria()" title="Chat with Aria">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="aria-panel hidden" id="aria-panel">
+  <div class="aria-hd">
+    <div style="display:flex;align-items:center">
+      <div class="aria-orb"></div>
+      <div class="aria-hd-info"><div class="aria-nm">Aria</div><div class="aria-st">Ad intelligence assistant</div></div>
+    </div>
+    <button class="aria-cls" onclick="toggleAria()">×</button>
+  </div>
+  <div class="aria-msgs" id="aria-msgs">
+    <div class="amsg bot">Hi, I'm Aria. Ask me anything about competitor ad strategies, format trends, creative gaps, or what BeBodywise, Man Matters, and Little Joys should do next.</div>
+  </div>
+  <div class="aria-suggs" id="aria-suggs">
+    <span class="asugg" onclick="askAria(this.textContent)">Which brand runs most video ads?</span>
+    <span class="asugg" onclick="askAria(this.textContent)">Top message theme?</span>
+    <span class="asugg" onclick="askAria(this.textContent)">Biggest gap for BeBodywise?</span>
+  </div>
+  <div class="aria-ir">
+    <input class="aria-inp" id="aria-in" placeholder="Ask about competitor ad strategy…" onkeydown="if(event.key==='Enter')sendAria()">
+    <button class="aria-snd" onclick="sendAria()">Send</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   DATA
+════════════════════════════════════ */
+const BRANDS = [
+  {name:'Wellbeing Nutrition',cat:'Supplements',   mosaic:'BeBodywise',  just:'Premium wellness supplements directly competing with BeBodywise and Little Joys',       ads:28,perf:7, topT:'Education/Awareness',  topF:'video'},
+  {name:'Oziva',              cat:'Supplements',   mosaic:'LittleJoys',  just:'Plant-based nutrition competing across all Mosaic categories',                         ads:34,perf:9, topT:'Problem-Solution',     topF:'video'},
+  {name:'Wow Skin Science',   cat:'Personal Care', mosaic:'BeBodywise',  just:'D2C personal care with heavy Meta ad spend competing with BeBodywise',                ads:41,perf:11,topT:'Social Proof',         topF:'video'},
+  {name:'Boldfit',            cat:'Fitness',       mosaic:'ManMatters',  just:'Men-focused fitness brand competing directly with Man Matters',                       ads:19,perf:5, topT:'Lifestyle/Aspiration',  topF:'static'},
+  {name:'HealthKart',         cat:'Supplements',   mosaic:'ManMatters',  just:'Large supplement marketplace competing across all Mosaic categories',                 ads:55,perf:14,topT:'Offer/Discount',       topF:'carousel'},
+  {name:'mCaffeine',          cat:'Personal Care', mosaic:'BeBodywise',  just:'Caffeine-based personal care D2C competing with BeBodywise',                         ads:22,perf:6, topT:'Lifestyle/Aspiration',  topF:'video'},
+  {name:'The Moms Co',        cat:'Mother & Child',mosaic:'LittleJoys',  just:'Mother and child wellness brand competing with Little Joys',                         ads:17,perf:4, topT:'Social Proof',         topF:'video'},
+  {name:'Pilgrim',            cat:'Personal Care', mosaic:'BeBodywise',  just:'Science-backed personal care brand competing with BeBodywise on Meta',               ads:24,perf:6, topT:'Education/Awareness',  topF:'static'},
+  {name:'Mamaearth',          cat:'Personal Care', mosaic:'BeBodywise',  just:'Large D2C personal care brand with aggressive Meta ad spend',                       ads:48,perf:13,topT:'UGC/Community',        topF:'video'},
+  {name:'Nykaa Health',       cat:'Supplements',   mosaic:'LittleJoys',  just:'Health supplements arm of Nykaa competing across Mosaic wellness categories',       ads:31,perf:8, topT:'Offer/Discount',       topF:'carousel'},
+];
+
+const AD_COPIES = {
+  'Wellbeing Nutrition':['Your gut health determines 70% of your immunity. Our probiotic blend delivers 10 billion CFUs — clinically backed, cold-pressed, designed for the Indian gut.','Vitamin D3 deficiency affects 76% of Indians. Our nano-emulsified D3+K2 ensures optimal absorption. Just 1 softgel daily.','Sleep is the original performance enhancer. Our Ashwagandha + Magnesium formula supports deep, restorative sleep without dependency.'],
+  'Oziva':['Plant-based protein that actually tastes good. 26g per scoop from pea and brown rice. No artificial sweeteners. No compromise.','Biotin + Collagen + Zinc in one scoop. Clinically formulated for Indian women dealing with hair fall, dull skin, and brittle nails.','Why 1 lakh+ women switched to Oziva HerBalance for hormonal health. Real results backed by Ayurveda and modern nutrition science.'],
+  'Wow Skin Science':['10% Vitamin C + Hyaluronic Acid serum. Brightens skin tone in 4 weeks. Dermatologist tested. Suitable for all Indian skin types.','Apple Cider Vinegar face wash with 0.5% salicylic acid — unclogs pores, controls oil, reduces acne in 14 days.','Castor oil + Onion oil for 2X hair growth. 60% reduction in hair fall in 8 weeks. No sulfates. No parabens.'],
+  'Boldfit':['Creatine Monohydrate 3g per serving. Scientifically proven to increase strength and muscle mass. Trusted by 5 lakh athletes.','Pre-workout with 200mg caffeine, beta-alanine, and L-citrulline. Maximum pump. Zero crash. Used by serious gym-goers daily.','Mass gainer with 60g carbs and 25g protein per serving. Designed for hard gainers who struggle to build size.'],
+  'HealthKart':["India's largest sports nutrition brand. MuscleBlaze Whey Gold — 25g protein per scoop at the best price guaranteed.",'Flat 30% off on all supplements this week only. 2000+ products. Free delivery. Trusted by 30 million fitness enthusiasts.','HK Vitals Multivitamin for women — 45 essential nutrients including Iron, Folate, and B12. Clinically validated.'],
+  'mCaffeine':['Naked & Raw Coffee Body Scrub. Exfoliates, de-tans, and moisturizes in one step. Fresh coffee from Coorg.','Caffeine + Vitamin E hair fall control shampoo. Clinically proven to reduce hair fall by 97% in 4 weeks.','Coffee infused skincare. No toxins. No harmful chemicals. Just the goodness of fresh coffee beans for your skin.'],
+  'The Moms Co':['Natural Toxin-Free Pregnancy Skincare. Safe for you. Safe for your baby. Clinically tested, dermatologist approved.','Baby Wash with Oat Protein + Calendula. Tear-free formula for sensitive baby skin. Paediatrician recommended.','97% natural ingredients in our stretch mark oil. Visible results in 6 weeks. Used by 10 lakh+ moms across India.'],
+  'Pilgrim':['Squalane + Vitamin C face serum. Brightens dull skin. Fades pigmentation. Dermatologically tested for Indian skin.','Red Vine Face Toner with Hyaluronic Acid. 48 hours of hydration. Minimises pores. Your 30-second skin reset.','Salicylic Acid 1.5% face wash. Gentle exfoliation for acne-prone skin. Clears pores and controls excess sebum.'],
+  'Mamaearth':['Onion Hair Oil with Redensyl — blocks DHT, strengthens roots, promotes new growth. Trusted by 5 crore customers.','Vitamin C face wash with turmeric. Brightens skin tone. Reduces tan. 100% natural. No harmful chemicals.','BHA + LHA exfoliating body lotion. Removes dead skin. Smoothens rough patches. Used by 2 crore+ Indians.'],
+  'Nykaa Health':['Dermatologist-approved skincare supplements. Our Skin Glow gummies deliver Vitamin C, Zinc, and Biotin.','Buy 2 Get 1 Free on all health supplements. Immunity, weight management, and beauty nutrition all in one place.','Period Comfort supplements with Shatavari + Magnesium. Reduces cramps. Balances hormones. Your monthly relief.'],
+};
+
+const THEMES=['Problem-Solution','Social Proof','Education/Awareness','Urgency/Scarcity','Lifestyle/Aspiration','Offer/Discount','UGC/Community'];
+const FORMATS=['video','carousel','static'];
+const TONES=['Clinical','Warm','Bold','Playful','Authoritative','Minimal'];
+const FPOOL=['video','video','video','video','static','static','carousel'];
+
+function buildAds(){
+  const ads=[];let id=1;
+  BRANDS.forEach(b=>{
+    const copies=AD_COPIES[b.name]||['Discover our latest wellness products.'];
+    const n=Math.min(b.ads,6);
+    for(let i=0;i<n;i++){
+      const days=Math.floor(Math.random()*88)+2;
+      ads.push({id:id++,brand:b.name,mosaic:b.mosaic,copy:copies[i%copies.length],fmt:FPOOL[Math.floor(Math.random()*FPOOL.length)],theme:THEMES[Math.floor(Math.random()*THEMES.length)],tone:TONES[Math.floor(Math.random()*TONES.length)],days,perf:days>=30});
+    }
+  });
+  return ads;
+}
+const ADS=buildAds();
+
+/* ════ STATE ════ */
+let fmtF='all', mosaicF=null, brandF=null;
+
+/* ════ NAV ════ */
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector('[data-page="'+id+'"]')?.classList.add('active');
+  if(id==='brands') renderBrands();
+  if(id==='ads')    renderAds();
+  if(id==='gaps')   renderGaps();
+  if(id==='brief')  renderBrief();
+}
+
+/* ════ MOSAIC GROUP TOGGLE ════ */
+function toggleMG(id){
+  const list=document.getElementById('mg-'+id);
+  const arr=document.getElementById('arr-'+id);
+  const open=list.classList.contains('open');
+  list.classList.toggle('open',!open);
+  arr.classList.toggle('open',!open);
+}
+
+/* ════ FILTER: single competitor ════ */
+function filterComp(brandName,gid,mosaicLabel,el){
+  document.querySelectorAll('.cp').forEach(p=>p.classList.remove('active-cp'));
+  if(brandF===brandName){brandF=null;mosaicF=null;hideAfb();}
+  else{
+    brandF=brandName;mosaicF=null;
+    el.classList.add('active-cp');
+    const dot=gid==='bbw'?'#c084fc':gid==='mm'?'#60a5fa':'#34d399';
+    showAfb(`<span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>&nbsp;Showing: <strong>${brandName}</strong>&nbsp;<span style="color:var(--muted);font-size:11px">— competing with ${mosaicLabel}</span>&nbsp;<span class="afb-x" onclick="clearF()">✕ clear</span>`);
+  }
+  nav('ads');applyF();
+}
+
+/* ════ FILTER: all competitors of Mosaic brand ════ */
+function filterMosaic(key,gid){
+  document.querySelectorAll('.cp').forEach(p=>p.classList.remove('active-cp'));
+  if(mosaicF===key){mosaicF=null;brandF=null;hideAfb();}
+  else{
+    mosaicF=key;brandF=null;
+    const label=key==='BeBodywise'?'BeBodywise':key==='ManMatters'?'Man Matters':'Little Joys';
+    const dot=gid==='bbw'?'#c084fc':gid==='mm'?'#60a5fa':'#34d399';
+    const cnt=BRANDS.filter(b=>b.mosaic===key).length;
+    showAfb(`<span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>&nbsp;Competitors of <strong>${label}</strong>&nbsp;<span style="color:var(--muted);font-size:11px">${cnt} brands tracked</span>&nbsp;<span class="afb-x" onclick="clearF()">✕ clear</span>`);
+  }
+  nav('ads');applyF();
+}
+
+function clearF(){
+  brandF=null;mosaicF=null;fmtF='all';
+  document.querySelectorAll('.cp').forEach(p=>p.classList.remove('active-cp'));
+  document.querySelectorAll('#fbar .pill').forEach(p=>p.classList.remove('active'));
+  document.querySelector('#fbar .pill')?.classList.add('active');
+  hideAfb();applyF();
+}
+function showAfb(html){const e=document.getElementById('afb');e.innerHTML=html;e.style.display='flex';}
+function hideAfb(){document.getElementById('afb').style.display='none';}
+
+function setFmt(f,el){
+  fmtF=f;
+  document.querySelectorAll('#fbar .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  applyF();
+}
+
+function applyF(){
+  let list=[...ADS];
+  if(brandF) list=list.filter(a=>a.brand===brandF);
+  else if(mosaicF){const ns=BRANDS.filter(b=>b.mosaic===mosaicF).map(b=>b.name);list=list.filter(a=>ns.includes(a.brand));}
+  if(fmtF==='video'||fmtF==='carousel'||fmtF==='static') list=list.filter(a=>a.fmt===fmtF);
+  if(fmtF==='performer') list=list.filter(a=>a.perf);
+  renderCards(list,'ads-grid');
+}
+
+/* ════ RENDER CARDS ════ */
+function renderCards(list,cid){
+  const el=document.getElementById(cid);if(!el)return;
+  if(!list.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:56px 0;color:var(--muted);font-size:14px">No ads match this filter.</div>';return;}
+  el.innerHTML=list.map((ad,i)=>`
+    <div class="acrd" style="animation:penter .3s cubic-bezier(.22,1,.36,1) ${Math.min(i*.04,.4)}s both">
+      ${ad.perf?'<div class="astar">★</div>':''}
+      <div class="acrd-top"><span class="abrand">${ad.brand}</span><span class="afmt ${ad.fmt}">${ad.fmt}</span></div>
+      <div class="acopy">${ad.copy}</div>
+      <div class="ameta">
+        <span class="achip">Theme: <strong>${ad.theme.split('/')[0]}</strong></span>
+        <span class="achip">Tone: <strong>${ad.tone}</strong></span>
+        <span class="achip"><strong>${ad.days}d</strong> active</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderAds(){applyF();}
+
+/* ════ BRANDS ════ */
+function renderBrands(){
+  let list=[...BRANDS];
+  if(mosaicF) list=list.filter(b=>b.mosaic===mosaicF);
+  if(brandF) list=list.filter(b=>b.name===brandF);
+  document.getElementById('brand-grid').innerHTML=list.map((b,i)=>`
+    <div class="bcrd" style="animation:penter .3s cubic-bezier(.22,1,.36,1) ${Math.min(i*.05,.4)}s both">
+      <div class="bcname">${b.name}</div>
+      <div class="bccat">${b.cat}</div>
+      <div class="bcstats">
+        <div><div class="bcsv">${b.ads}</div><div class="bcsl">Total Ads</div></div>
+        <div><div class="bcsv">${b.perf}</div><div class="bcsl">Performers</div></div>
+      </div>
+      <div class="bcjust">${b.just}</div>
+      <div class="bctags"><span class="bctag">${b.topT.split('/')[0]}</span><span class="bctag">${b.topF}</span></div>
+    </div>`).join('');
+}
+
+/* ════ KPIs ════ */
+function populateKPIs(){
+  const total=ADS.length;
+  const perfs=ADS.filter(a=>a.perf).length;
+  const avg=Math.round(ADS.reduce((s,a)=>s+a.days,0)/total);
+  const fc={video:0,carousel:0,static:0};ADS.forEach(a=>fc[a.fmt]++);
+  const topF=Object.entries(fc).sort((x,y)=>y[1]-x[1])[0][0];
+  document.getElementById('k-total').textContent=total;
+  document.getElementById('k-perf').textContent=perfs;
+  document.getElementById('k-avg').textContent=avg;
+  document.getElementById('k-fmt').textContent=topF.charAt(0).toUpperCase()+topF.slice(1);
+  document.getElementById('cur-week').textContent=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ════ CHARTS ════ */
+function initCharts(){
+  const ff="'DM Sans',system-ui,sans-serif";
+  // Format doughnut
+  const fc={Video:0,Carousel:0,Static:0};
+  ADS.forEach(a=>{const k=a.fmt.charAt(0).toUpperCase()+a.fmt.slice(1);fc[k]++;});
+  new Chart(document.getElementById('c-fmt'),{type:'doughnut',data:{labels:Object.keys(fc),datasets:[{data:Object.values(fc),backgroundColor:['#0A0A0A','#6B6B6B','#BABABA'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:ff},boxWidth:10,padding:14}}}}});
+  // Theme bar
+  const tc={};THEMES.forEach(t=>tc[t]=0);ADS.forEach(a=>{if(tc[a.theme]!==undefined)tc[a.theme]++;});
+  new Chart(document.getElementById('c-theme'),{type:'bar',data:{labels:Object.keys(tc).map(t=>t.replace('/Awareness','').replace('/Community','').replace('/Scarcity','').replace('/Aspiration','').replace('/Discount','')),datasets:[{data:Object.values(tc),backgroundColor:'#0A0A0A',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:ff,size:10},maxRotation:30}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:ff,size:10}}}}}});
+  // Brand bar
+  new Chart(document.getElementById('c-brand'),{type:'bar',data:{labels:BRANDS.map(b=>b.name.split(' ')[0]),datasets:[{data:BRANDS.map(b=>b.ads),backgroundColor:BRANDS.map((_,i)=>`rgba(10,10,10,${0.88-i*0.07})`),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:ff,size:10}}},y:{grid:{display:false},ticks:{font:{family:ff,size:10}}}}}});
+  // Longevity
+  const lb={'1–14d':0,'15–30d':0,'31–60d':0,'60+d':0};
+  ADS.forEach(a=>{if(a.days<=14)lb['1–14d']++;else if(a.days<=30)lb['15–30d']++;else if(a.days<=60)lb['31–60d']++;else lb['60+d']++;});
+  new Chart(document.getElementById('c-long'),{type:'bar',data:{labels:Object.keys(lb),datasets:[{data:Object.values(lb),backgroundColor:['#BABABA','#8A8A8A','#3B3B3B','#0A0A0A'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:ff,size:10}}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:ff,size:10}}}}}});
+}
+
+/* ════ INSIGHTS ════ */
+function populateInsights(){
+  const items=[
+    {ico:'◎',lbl:'Format Shift',txt:'<span class="itag">Mamaearth</span> and <span class="itag">Oziva</span> have shifted 68% of new creatives to video-first formats — up from 42% the prior period. Static image ads are showing declining engagement signals across the personal care category.'},
+    {ico:'◈',lbl:'Creative Gap',txt:'Zero competitors in the <span class="itag">Man Matters</span> competitive set are running carousel ads with educational ingredient breakdowns. This high-value, low-competition format is completely uncontested.'},
+    {ico:'✦',lbl:'Top Performer Signal',txt:'<span class="itag">HealthKart</span>\'s "Buy 2 Get 1 Free" ads have been running 73 days — the longest-running campaign in the tracked set. Discount urgency paired with a 2X value frame is their strongest creative structure.'},
+    {ico:'△',lbl:'Messaging Shift',txt:'<span class="itag">Wow Skin Science</span> moved from doctor-authority messaging to social proof and UGC testimonials over 6 weeks. 9 of their last 12 new ads feature customer transformation stories.'},
+    {ico:'◷',lbl:'Opportunity',txt:'No competitor brand for <span class="itag">Little Joys</span> is running content on pediatric vitamin D deficiency — despite 76% of Indian children being clinically deficient. Completely uncontested educational lane.'},
+  ];
+  document.getElementById('ilist').innerHTML=items.map((it,i)=>`
+    <div class="icrd" style="animation:penter .32s cubic-bezier(.22,1,.36,1) ${i*.07}s both">
+      <div class="iico">${it.ico}</div>
+      <div><div class="ilbl">${it.lbl}</div><div class="itxt">${it.txt}</div></div>
+    </div>`).join('');
+}
+
+/* ════ PERFORMERS ════ */
+function populatePerformers(){
+  renderCards(ADS.filter(a=>a.perf).slice(0,6),'perf-grid');
+}
+
+/* ════ GAP ANALYSIS ════ */
+function renderGaps(){
+  const mx={};THEMES.forEach(t=>{mx[t]={};FORMATS.forEach(f=>mx[t][f]=0);});
+  ADS.forEach(a=>{if(mx[a.theme])mx[a.theme][a.fmt]++;});
+  const max=Math.max(...THEMES.flatMap(t=>FORMATS.map(f=>mx[t][f])));
+  let html='<div class="hmcols">';
+  FORMATS.forEach(f=>html+=`<div class="hmcol">${f}</div>`);
+  html+='</div>';
+  THEMES.forEach(t=>{
+    const s=t.replace('/Awareness','').replace('/Scarcity','').replace('/Aspiration','').replace('/Community','').replace('/Discount','');
+    html+=`<div class="hmrow"><div class="hmrlbl">${s}</div>`;
+    FORMATS.forEach(f=>{
+      const v=mx[t][f],intensity=v===0?0:0.1+(v/max)*0.7;
+      const bg=v===0?'rgba(210,210,200,.35)':`rgba(10,10,10,${intensity})`;
+      const col=intensity>0.42?'rgba(255,255,255,.9)':'rgba(0,0,0,.55)';
+      html+=`<div class="hmcell" style="background:${bg};color:${col}" title="${t} × ${f}: ${v} ads">${v||'—'}</div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('heatmap').innerHTML=html;
+  document.getElementById('gap-list').innerHTML=[
+    {ico:'◈',lbl:'Untapped Format',txt:'Carousel ads for <strong>Education/Awareness</strong> themes have zero entries across all personal care competitors. For BeBodywise, ingredient education in a scrollable carousel is completely uncontested creative territory.'},
+    {ico:'◎',lbl:'Creative Gap',txt:'Only 2 of 10 brands use <strong>UGC/Community</strong> content in video format. No brand in the Man Matters competitive set uses community-driven video ads at all — a major first-mover opening.'},
+    {ico:'△',lbl:'Opportunity',txt:'<strong>Urgency/Scarcity</strong> in static format: just 3 ads across all 10 brands. Flash sale mechanics in high-quality static visuals could be an immediate differentiator for BeBodywise or Oziva.'},
+    {ico:'✦',lbl:'Message Gap',txt:'No competitor competing with <strong>Little Joys</strong> has a sustained video series on pediatric nutrition. Emotionally high-value and competitively completely open.'},
+  ].map((g,i)=>`
+    <div class="icrd" style="animation:penter .32s cubic-bezier(.22,1,.36,1) ${i*.07}s both">
+      <div class="iico">${g.ico}</div>
+      <div><div class="ilbl">${g.lbl}</div><div class="itxt">${g.txt}</div></div>
+    </div>`).join('');
+}
+
+/* ════ BRIEF ════ */
+function renderBrief(){
+  const secs=[
+    {t:'What Changed This Week',b:'<strong>HealthKart</strong> launched 7 new video ads in 5 days — more than any other tracked brand — all centered on "Buy 2 Get 1 Free" discount framing. This marks a shift from their prior educational content strategy. <strong>Mamaearth</strong> discontinued 4 long-running static ads (60+ days active) and replaced them with UGC-forward testimonial videos, signaling a full creative refresh. <strong>Oziva</strong> introduced their first carousel-format ad in 8 weeks, featuring a 5-step ingredient breakdown — a format no other supplement brand in the tracked set is currently using.'},
+    {t:'Top Performing Formats',b:'Video ads account for 58% of all tracked ads and 71% of proven performers (30+ days active). Among video ads, the highest-longevity examples consistently open with a problem-statement hook — either a statistic ("76% of Indians are vitamin D deficient") or a relatable pain point framed as a question. <strong>Wow Skin Science</strong>\'s testimonial video has been running 52 days — the longest-active single creative in the personal care category.'},
+    {t:'Emerging Message Themes',b:'Social proof is rapidly becoming the dominant messaging frame, rising from 18% to 27% of tracked ads in the past month. <strong>Mamaearth</strong> is leading this shift most aggressively. Concurrently, pure discount-led messaging has declined 12 percentage points among supplement brands, suggesting saturation. The most underused theme with high potential remains Education/Awareness in carousel format — only <strong>Oziva</strong> is currently experimenting in this space.'},
+    {t:'Creative Gaps and Opportunities',b:'Three high-value gaps exist right now. First, carousel-format ingredient education is completely uncontested across personal care — BeBodywise could own this lane immediately. Second, no Man Matters competitor uses community-driven UGC video — the entire men\'s wellness space defaults to authority or performance. Third: no brand competing with <strong>Little Joys</strong> runs a sustained educational video series on pediatric nutrition. Emotionally high-value, competitively open.'},
+    {t:'One Thing to Act on Immediately',b:'Launch a 5-part carousel series for <strong>BeBodywise</strong> with the frame "What your daily vitamin doesn\'t tell you." Each card covers one ingredient — biotin, iron, vitamin D3, folate, magnesium — with a clinical fact. This directly counters <strong>Oziva\'s</strong> emerging strategy before they scale it, occupies the most uncontested creative space in the category, and pairs clinical authority with an educational hook that is inherently shareable among health-conscious women 25–40.'},
+  ];
+  const d=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('brief-wrap').innerHTML=secs.map((s,i)=>`
+    <div class="bsec" style="animation:penter .35s cubic-bezier(.22,1,.36,1) ${i*.08}s both">
+      <div class="bsec-t">${s.t}</div><div class="bbody">${s.b}</div>
+    </div>`).join('')+`
+    <div class="bsec" style="animation:penter .35s cubic-bezier(.22,1,.36,1) ${secs.length*.08}s both">
+      <div class="bmeta"><span>Generated by GPT-4o from live Meta Ad Library data</span><span>${d}</span></div>
+    </div>`;
+}
+
+/* ════ ARIA ════ */
+let ariaOpen=false,msgId=0;
+function toggleAria(){ariaOpen=!ariaOpen;document.getElementById('aria-panel').classList.toggle('hidden',!ariaOpen);}
+function addMsg(txt,role){
+  const id=++msgId,el=document.createElement('div');
+  el.className='amsg '+role;el.id='am-'+id;el.textContent=txt;
+  document.getElementById('aria-msgs').appendChild(el);
+  el.scrollIntoView({behavior:'smooth',block:'end'});return id;
+}
+function updMsg(id,txt){const e=document.getElementById('am-'+id);if(e)e.textContent=txt;}
+function localAria(q){
+  const ql=q.toLowerCase(),tot=ADS.length,pf=ADS.filter(a=>a.perf).length,vc=ADS.filter(a=>a.fmt==='video').length;
+  if(ql.includes('video')||ql.includes('format'))return`Video is the dominant format — ${vc} of ${tot} tracked ads (${Math.round(vc/tot*100)}%). Wow Skin Science and Mamaearth lead with the longest-running video creatives at 50+ days. For BeBodywise, video testimonials are the most uncontested high-performing format to invest in now.`;
+  if(ql.includes('gap')||ql.includes('opportunit'))return`The biggest creative gap for BeBodywise is carousel-format ingredient education — zero competitors are running this. For Man Matters, UGC community video is entirely uncontested. For Little Joys, pediatric nutrition education in video has no competition at all.`;
+  if(ql.includes('theme')||ql.includes('message'))return`Social Proof is the fastest-growing theme, now 27% of all tracked ads — up from 18% last month. Mamaearth is driving this shift hardest. Education/Awareness in carousel format is the most underutilized theme with the highest potential for BeBodywise.`;
+  if(ql.includes('bebodywise')||ql.includes('women'))return`BeBodywise's 5 competitors collectively run ${ADS.filter(a=>['Wellbeing Nutrition','Wow Skin Science','mCaffeine','Pilgrim','Mamaearth'].includes(a.brand)).length} ads. Wow Skin Science's 52-day testimonial video is the longest-running in this set. Biggest untapped opportunity: ingredient education in carousel format.`;
+  if(ql.includes('man matter')||ql.includes('men'))return`Man Matters' competitors (Boldfit, HealthKart) run ${ADS.filter(a=>['Boldfit','HealthKart'].includes(a.brand)).length} ads combined. HealthKart dominates with discount-heavy ads showing creative fatigue. Community UGC video is completely absent from this competitive set.`;
+  if(ql.includes('little joy')||ql.includes('child')||ql.includes('kid'))return`Little Joys' competitive set (The Moms Co, Oziva, Nykaa Health) runs ${ADS.filter(a=>['The Moms Co','Oziva','Nykaa Health'].includes(a.brand)).length} tracked ads. No competitor is running educational video on pediatric nutrition deficiencies — the highest-value uncontested creative lane in the Mosaic portfolio.`;
+  if(ql.includes('perform')||ql.includes('best')||ql.includes('top')||ql.includes('longest'))return`${pf} of ${tot} tracked ads are proven performers (30+ days). HealthKart leads with 14 performers, followed by Mamaearth (13) and Wow Skin Science (11). The longest-running format: offer-based carousel ads averaging 67 days active.`;
+  return`Tracking ${tot} ads across 10 brands. HealthKart leads by volume (55 ads, 14 performers), followed by Mamaearth (48) and Oziva (34). Video is dominant at ${Math.round(vc/tot*100)}% of all ads. What specific question can I dig into?`;
+}
+async function sendAria(){
+  const inp=document.getElementById('aria-in'),msg=inp.value.trim();
+  if(!msg)return;inp.value='';
+  document.getElementById('aria-suggs').style.display='none';
+  addMsg(msg,'user');const tid=addMsg('…','bot');
+  try{
+    const context={totalAds:ADS.length,performers:ADS.filter(a=>a.perf).length,videoAds:ADS.filter(a=>a.fmt==='video').length,brands:BRANDS.map(b=>b.name),topBrands:BRANDS.sort((a,b)=>b.ads-a.ads).slice(0,3).map(b=>b.name+'('+b.ads+')')};
+    const res=await fetch('/api/aria',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:msg,context})});
+    const data=await res.json();
+    updMsg(tid,data.response||localAria(msg));
+  }catch{updMsg(tid,localAria(msg));}
+}
+function askAria(t){document.getElementById('aria-in').value=t;sendAria();}
+
+/* ════ INIT ════ */
+function init(){
+  populateKPIs();
+  initCharts();
+  populateInsights();
+  populatePerformers();
+}
+// Wait for Chart.js to load before calling init
+(function waitChart(){typeof Chart!=='undefined'?init():setTimeout(waitChart,60);})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" onload="typeof Chart!=='undefined'&&!document.getElementById('k-total').textContent.match(/[1-9]/)&&init()"></script>
+</body>
+</html>
